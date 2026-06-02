@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WellnessPath - BMI Calculator & Personalized Health Counselor</title>
+    <!-- Tailwind CSS for sleek modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for beautiful historical tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons via ESM -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(241, 245, 249, 1);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(203, 213, 225, 1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Header/Navigation -->
+    <header class="bg-white border-b border-slate-100 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 text-white p-2 rounded-xl shadow-md shadow-emerald-100">
+                    <i data-lucide="activity" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">WellnessPath</h1>
+                    <p class="text-xs text-slate-500 font-medium">Smart BMI & Wellness Counseling</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="resetApp()" class="text-slate-500 hover:text-slate-800 transition p-2 hover:bg-slate-50 rounded-lg" title="Reset Data">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                </button>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Live Health Engine Active
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Panel: Input & Controls (4 Cols) -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Calculator Input Card -->
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col gap-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="sliders" class="text-emerald-500 w-5 h-5"></i>
+                        <h2 class="font-bold text-slate-900 text-lg">Input Parameters</h2>
+                    </div>
+                    <!-- Unit Selector -->
+                    <div class="flex bg-slate-100 p-1 rounded-xl">
+                        <button id="metric-btn" onclick="switchUnit('metric')" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-emerald-600 shadow-sm">
+                            Metric
+                        </button>
+                        <button id="imperial-btn" onclick="switchUnit('imperial')" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900">
+                            Imperial
+                        </button>
+                    </div>
+                </div>
+
+                <form id="bmi-form" onsubmit="calculateBMI(event)" class="space-y-5">
+                    <!-- Gender & Age Selection -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gender</label>
+                            <div class="grid grid-cols-2 gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100">
+                                <label class="cursor-pointer text-center py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-1 select-none" id="label-male">
+                                    <input type="radio" name="gender" value="male" checked class="hidden" onchange="updateGenderUI('male')">
+                                    <i data-lucide="mars" class="w-4 h-4 text-blue-500"></i> Male
+                                </label>
+                                <label class="cursor-pointer text-center py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-1 select-none" id="label-female">
+                                    <input type="radio" name="gender" value="female" class="hidden" onchange="updateGenderUI('female')">
+                                    <i data-lucide="venus" class="w-4 h-4 text-pink-500"></i> Female
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Age (years)</label>
+                            <input type="number" id="input-age" value="28" min="15" max="100" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
+                        </div>
+                    </div>
+
+                    <!-- Metric Height/Weight Inputs -->
+                    <div id="metric-inputs" class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Height (cm)</label>
+                                <span id="val-height-cm" class="text-sm font-bold text-slate-800">175 cm</span>
+                            </div>
+                            <input type="range" id="range-height" min="100" max="230" value="175" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-500" oninput="syncInputs('height')">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Weight (kg)</label>
+                                <span id="val-weight-kg" class="text-sm font-bold text-slate-800">70 kg</span>
+                            </div>
+                            <input type="range" id="range-weight" min="30" max="180" value="70" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-500" oninput="syncInputs('weight')">
+                        </div>
+                    </div>
+
+                    <!-- Imperial Height/Weight Inputs -->
+                    <div id="imperial-inputs" class="space-y-4 hidden">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Height</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="relative">
+                                    <input type="number" id="input-ft" value="5" min="3" max="8" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
+                                    <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">ft</span>
+                                </div>
+                                <div class="relative">
+                                    <input type="number" id="input-in" value="9" min="0" max="11" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
+                                    <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">in</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Weight</label>
+                            <div class="relative">
+                                <input type="number" id="input-lbs" value="154" min="60" max="400" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
+                                <span class="absolute right-4 top-3 text-xs font-bold text-slate-400">lbs</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Multiplier (For counseling customization) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Daily Activity Level</label>
+                        <select id="input-activity" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition text-slate-700">
+                            <option value="1.2">Sedentary (Little/no exercise)</option>
+                            <option value="1.375">Lightly Active (1-3 days/wk)</option>
+                            <option value="1.55" selected>Moderately Active (3-5 days/wk)</option>
+                            <option value="1.725">Very Active (6-7 days/wk)</option>
+                        </select>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-2 grid grid-cols-2 gap-3">
+                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2">
+                            <i data-lucide="calculator" class="w-4 h-4"></i> Calculate
+                        </button>
+                        <button type="button" onclick="saveResult()" class="w-full border-2 border-slate-200 hover:border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2">
+                            <i data-lucide="bookmark" class="w-4 h-4"></i> Log Weight
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Toast alert box for dynamic in-app feedback -->
+            <div id="toast" class="hidden bg-slate-900 text-white text-xs px-4 py-3 rounded-xl flex items-center justify-between shadow-lg transition duration-300 transform translate-y-2 opacity-0">
+                <span id="toast-message" class="font-medium">Notification message here</span>
+                <button onclick="hideToast()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+
+            <!-- Ideal Weight Range Helper Widget -->
+            <div class="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 opacity-10">
+                    <i data-lucide="heart" class="w-36 h-36"></i>
+                </div>
+                <div class="relative z-10 space-y-4">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-indigo-500/20 border border-indigo-400/30 rounded-lg"><i data-lucide="sparkles" class="w-4 h-4 text-indigo-300"></i></span>
+                        <h3 class="font-bold text-indigo-100">Healthy Reference</h3>
+                    </div>
+                    <div>
+                        <p class="text-xs text-indigo-200 font-medium">Your Ideal Weight Range</p>
+                        <p class="text-2xl font-black mt-1" id="val-ideal-range">121.2 lbs - 163.4 lbs</p>
+                    </div>
+                    <div class="border-t border-indigo-800/60 pt-3 flex justify-between items-center text-xs text-indigo-200">
+                        <span>Based on 18.5 - 24.9 BMI range</span>
+                        <span class="font-bold flex items-center gap-1"><i data-lucide="info" class="w-3.5 h-3.5"></i> WHO Standards</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Results & Personalized Counseling (8 Cols) -->
+        <section class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Result Summary Dashboard Row -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <!-- Gauge Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 md:col-span-7 flex flex-col items-center justify-center relative min-h-[280px]">
+                    <h3 class="absolute top-6 left-6 font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-500"></i> BMI Category Indicator
+                    </h3>
+                    
+                    <!-- SVG Gauge Visualizer -->
+                    <div class="relative w-56 h-32 mt-6">
+                        <!-- Colored Arch Arc -->
+                        <svg class="w-full h-full" viewBox="0 0 100 50">
+                            <!-- Background track shadow -->
+                            <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#F1F5F9" stroke-width="8" stroke-linecap="round"></path>
+                            <!-- Underweight Segment (Blue) -->
+                            <path d="M 10 50 A 40 40 0 0 1 25.5 25.5" fill="none" stroke="#60A5FA" stroke-width="8" stroke-linecap="round" stroke-dasharray="2 0"></path>
+                            <!-- Normal Weight Segment (Green) -->
+                            <path d="M 25.5 25.5 A 40 40 0 0 1 50 10" fill="none" stroke="#34D399" stroke-width="8"></path>
+                            <!-- Overweight Segment (Orange) -->
+                            <path d="M 50 10 A 40 40 0 0 1 74.5 25.5" fill="none" stroke="#F59E0B" stroke-width="8"></path>
+                            <!-- Obese Segment (Red) -->
+                            <path d="M 74.5 25.5 A 40 40 0 0 1 90 50" fill="none" stroke="#EF4444" stroke-width="8" stroke-linecap="round"></path>
+                            
+                            <!-- Dynamic Indicator Needle -->
+                            <g id="needle" class="transition-transform duration-1000 origin-[50px_50px]" style="transform: rotate(45deg);">
+                                <line x1="50" y1="50" x2="50" y2="12" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+                                <circle cx="50" cy="50" r="4.5" fill="#1E293B" />
+                            </g>
+                        </svg>
+                        
+                        <div class="absolute inset-0 flex flex-col items-center justify-end pb-1">
+                            <span id="display-bmi-val" class="text-4xl font-extrabold text-slate-900 leading-none">22.8</span>
+                            <span id="display-bmi-lbl" class="text-xs font-bold mt-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full">Normal Weight</span>
+                        </div>
+                    </div>
+
+                    <!-- Minimized labels list -->
+                    <div class="w-full flex justify-between px-2 mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-50 pt-4">
+                        <span class="text-blue-400">Under &lt; 18.5</span>
+                        <span class="text-emerald-500">Normal 18.5-24.9</span>
+                        <span class="text-amber-500">Over 25-29.9</span>
+                        <span class="text-red-500">Obese &gt; 30</span>
+                    </div>
+                </div>
+
+                <!-- Fast Facts Stats Card -->
+                <div class="grid grid-rows-2 gap-4 md:col-span-5">
+                    <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="bg-orange-50 text-orange-600 p-3.5 rounded-2xl">
+                            <i data-lucide="flame" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Est. Calories Needed (TDEE)</p>
+                            <h4 id="val-tdee" class="text-2xl font-black text-slate-800 mt-1">2,350 <span class="text-xs font-bold text-slate-500">kcal/day</span></h4>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="bg-sky-50 text-sky-600 p-3.5 rounded-2xl">
+                            <i data-lucide="droplet" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Daily Hydration Goal</p>
+                            <h4 id="val-water" class="text-2xl font-black text-slate-800 mt-1">2.7 <span class="text-xs font-bold text-slate-500">Liters</span></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Personalized Health Counseling Panel -->
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-50/20 to-teal-50/10">
+                    <div class="flex items-center gap-2">
+                        <div class="bg-emerald-500 text-white p-1.5 rounded-lg"><i data-lucide="user-check" class="w-5 h-5"></i></div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg">Your Improvement Roadmaps</h3>
+                            <p class="text-xs text-slate-400 font-medium">Clinically backed personalized targets & steps</p>
+                        </div>
+                    </div>
+                    <!-- Tab controls -->
+                    <div class="flex bg-slate-100 p-1.5 rounded-xl self-start md:self-auto gap-1">
+                        <button onclick="switchCounselingTab('diet')" id="tab-diet-btn" class="px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 bg-white text-slate-800 shadow-sm flex items-center gap-1.5">
+                            <i data-lucide="utensils" class="w-3.5 h-3.5"></i> Nutrition
+                        </button>
+                        <button onclick="switchCounselingTab('fitness')" id="tab-fitness-btn" class="px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
+                            <i data-lucide="dumbbell" class="w-3.5 h-3.5"></i> Fitness
+                        </button>
+                        <button onclick="switchCounselingTab('lifestyle')" id="tab-lifestyle-btn" class="px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
+                            <i data-lucide="heart-pulse" class="w-3.5 h-3.5"></i> Lifestyle Habits
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab Panels Area -->
+                <div class="p-6">
+                    <!-- Diet Tab -->
+                    <div id="tab-diet" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Macro Carb Bar -->
+                            <div class="bg-amber-50/50 rounded-2xl p-4 border border-amber-100">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs font-bold text-amber-700 uppercase tracking-wide">Carbohydrates</span>
+                                    <span id="macro-carb-pct" class="text-xs font-extrabold text-amber-700">50%</span>
+                                </div>
+                                <p id="macro-carb-grams" class="text-lg font-black text-amber-900">293g</p>
+                                <span class="text-[10px] text-amber-600/80 font-medium block mt-1">Energy &amp; sustained fuel sources</span>
+                            </div>
+                            <!-- Macro Protein Bar -->
+                            <div class="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs font-bold text-emerald-700 uppercase tracking-wide">Proteins</span>
+                                    <span id="macro-protein-pct" class="text-xs font-extrabold text-emerald-700">25%</span>
+                                </div>
+                                <p id="macro-protein-grams" class="text-lg font-black text-emerald-900">146g</p>
+                                <span class="text-[10px] text-emerald-600/80 font-medium block mt-1">Muscle building &amp; satiety control</span>
+                            </div>
+                            <!-- Macro Fat Bar -->
+                            <div class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs font-bold text-indigo-700 uppercase tracking-wide">Fats</span>
+                                    <span id="macro-fat-pct" class="text-xs font-extrabold text-indigo-700">25%</span>
+                                </div>
+                                <p id="macro-fat-grams" class="text-lg font-black text-indigo-900">65g</p>
+                                <span class="text-[10px] text-indigo-600/80 font-medium block mt-1">Hormonal support &amp; cell health</span>
+                            </div>
+                        </div>
+
+                        <!-- Diet Lists -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+                                    <i data-lucide="check-circle-2" class="text-emerald-500 w-4 h-4"></i> Recommended Foods
+                                </h4>
+                                <ul id="diet-foods-to-include" class="space-y-2 text-xs text-slate-600 font-medium list-disc list-inside bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
+                                    <!-- Dynamic content inject -->
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+                                    <i data-lucide="alert-triangle" class="text-rose-500 w-4 h-4"></i> Avoid or Limit
+                                </h4>
+                                <ul id="diet-foods-to-avoid" class="space-y-2 text-xs text-slate-600 font-medium list-disc list-inside bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
+                                    <!-- Dynamic content inject -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fitness Tab -->
+                    <div id="tab-fitness" class="hidden space-y-6">
+                        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-2xl border border-emerald-100 flex items-start gap-3">
+                            <span class="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl"><i data-lucide="dumbbell" class="w-5 h-5"></i></span>
+                            <div>
+                                <h4 class="text-sm font-bold text-emerald-900 mb-0.5">Your Core Workout Strategy</h4>
+                                <p id="fitness-headline" class="text-xs text-emerald-800/80 leading-relaxed font-medium">Recommended physical plan description goes here.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h5 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">Workout Protocol</h5>
+                                <div id="fitness-routine" class="space-y-3">
+                                    <!-- Dynamic content inject -->
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">Progression Guidelines</h5>
+                                <div id="fitness-guidelines" class="space-y-3">
+                                    <!-- Dynamic content inject -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lifestyle Tab -->
+                    <div id="tab-lifestyle" class="hidden space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+                                <span class="p-2 bg-purple-500/10 text-purple-600 rounded-xl"><i data-lucide="moon" class="w-5 h-5"></i></span>
+                                <div>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase">Sleep Goal</p>
+                                    <p id="lifestyle-sleep" class="text-sm font-bold text-slate-800 mt-0.5">7-8 hours</p>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+                                <span class="p-2 bg-orange-500/10 text-orange-600 rounded-xl"><i data-lucide="smile" class="w-5 h-5"></i></span>
+                                <div>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase">Stress Control</p>
+                                    <p id="lifestyle-stress" class="text-sm font-bold text-slate-800 mt-0.5">Mindfulness</p>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+                                <span class="p-2 bg-blue-500/10 text-blue-600 rounded-xl"><i data-lucide="footprints" class="w-5 h-5"></i></span>
+                                <div>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase">Steps Guideline</p>
+                                    <p id="lifestyle-steps" class="text-sm font-bold text-slate-800 mt-0.5">10k+ steps</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 mb-3">Daily Micro-Habits to Standardize</h4>
+                            <div id="lifestyle-habits-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Dynamic dynamic -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Logs & Weight Tracker Card -->
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg">Weight Tracker &amp; Progress Chart</h3>
+                        <p class="text-xs text-slate-400 font-medium">Keep track of your physical trends over time</p>
+                    </div>
+                    <button onclick="clearHistory()" class="text-xs font-semibold text-rose-500 hover:text-rose-700 transition flex items-center gap-1">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear Records
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <!-- Chart Panel -->
+                    <div class="lg:col-span-8 bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-center min-h-[220px]">
+                        <div id="chart-placeholder" class="text-center space-y-2 hidden">
+                            <p class="text-sm font-medium text-slate-400">Not enough data to graph.</p>
+                            <p class="text-xs text-slate-300">Log at least two records to render weight timeline trends.</p>
+                        </div>
+                        <canvas id="weightHistoryChart" class="max-w-full"></canvas>
+                    </div>
+
+                    <!-- Logs List Panel -->
+                    <div class="lg:col-span-4 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Recent Logs</h4>
+                        <div id="logs-container" class="max-h-[200px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                            <!-- Dynamically loaded log blocks -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Share / Export Summary Section -->
+            <div class="bg-teal-50/50 border border-teal-100 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-start gap-4">
+                    <span class="p-3 bg-teal-500 text-white rounded-2xl shadow-lg shadow-teal-500/20"><i data-lucide="copy" class="w-6 h-6"></i></span>
+                    <div>
+                        <h3 class="font-bold text-teal-950 text-base">Export Health Prescription</h3>
+                        <p class="text-xs text-teal-800/80 leading-relaxed font-medium mt-0.5">Copy a formatted, comprehensive breakdown of your stats &amp; counseling points to save to your local notes.</p>
+                    </div>
+                </div>
+                <button onclick="copyShareableText()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-3 rounded-xl shadow-md shadow-teal-600/10 transition flex items-center gap-2 text-xs shrink-0 select-none">
+                    <i data-lucide="share" class="w-4 h-4"></i> Copy Diagnostic Report
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 text-slate-400 py-8 border-t border-slate-900 text-center mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-xs space-y-2 font-medium">
+            <p>© 2026 WellnessPath System. Built for educational and wellness advisory mapping purposes.</p>
+            <p class="text-slate-600">Ensure to consult a licensed medical clinician or nutritionist for acute health prescriptions.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Core variables
+        let appState = {
+            unit: 'metric', // metric or imperial
+            gender: 'male',
+            bmi: 22.8,
+            currentWeightKg: 70,
+            currentHeightCm: 175,
+            age: 28,
+            activityLevel: 1.55,
+            history: []
+        };
+
+        // DOM elements
+        const metricInputs = document.getElementById('metric-inputs');
+        const imperialInputs = document.getElementById('imperial-inputs');
+        const metricBtn = document.getElementById('metric-btn');
+        const imperialBtn = document.getElementById('imperial-btn');
+        
+        const rHeight = document.getElementById('range-height');
+        const rWeight = document.getElementById('range-weight');
+        const vHeightCm = document.getElementById('val-height-cm');
+        const vWeightKg = document.getElementById('val-weight-kg');
+
+        const inputFt = document.getElementById('input-ft');
+        const inputIn = document.getElementById('input-in');
+        const inputLbs = document.getElementById('input-lbs');
+        const inputAge = document.getElementById('input-age');
+        const inputActivity = document.getElementById('input-activity');
+
+        // Chart Instance
+        let weightChart = null;
+
+        // On Load Init
+        window.onload = function() {
+            lucide.createIcons();
+            loadFromLocalStorage();
+            updateGenderUI('male');
+            syncUnitsAndValues();
+            calculateAndRender();
+        };
+
+        // Switch standard input mode standard UI
+        function switchUnit(mode) {
+            appState.unit = mode;
+            if (mode === 'metric') {
+                metricInputs.classList.remove('hidden');
+                imperialInputs.classList.add('hidden');
+                metricBtn.classList.add('bg-white', 'text-emerald-600', 'shadow-sm');
+                metricBtn.classList.remove('text-slate-600');
+                imperialBtn.classList.remove('bg-white', 'text-emerald-600', 'shadow-sm');
+                imperialBtn.classList.add('text-slate-600');
+            } else {
+                metricInputs.classList.add('hidden');
+                imperialInputs.classList.remove('hidden');
+                imperialBtn.classList.add('bg-white', 'text-emerald-600', 'shadow-sm');
+                imperialBtn.classList.remove('text-slate-600');
+                metricBtn.classList.remove('bg-white', 'text-emerald-600', 'shadow-sm');
+                metricBtn.classList.add('text-slate-600');
+            }
+            syncUnitsAndValues();
+        }
+
+        // Keep values aligned between range sliders and standard inputs
+        function syncUnitsAndValues() {
+            if (appState.unit === 'metric') {
+                const heightCm = parseInt(rHeight.value);
+                const weightKg = parseInt(rWeight.value);
+                vHeightCm.innerText = `${heightCm} cm`;
+                vWeightKg.innerText = `${weightKg} kg`;
+                
+                // Keep imperial form fields aligned in background
+                const totalInches = heightCm / 2.54;
+                const ft = Math.floor(totalInches / 12);
+                const inches = Math.round(totalInches % 12);
+                inputFt.value = ft;
+                inputIn.value = inches;
+                inputLbs.value = Math.round(weightKg * 2.20462);
+            } else {
+                const ft = parseInt(inputFt.value) || 0;
+                const inches = parseInt(inputIn.value) || 0;
+                const lbs = parseFloat(inputLbs.value) || 0;
+
+                const totalInches = (ft * 12) + inches;
+                const heightCm = Math.round(totalInches * 2.54);
+                const weightKg = Math.round(lbs / 2.20462);
+
+                rHeight.value = heightCm;
+                rWeight.value = weightKg;
+                vHeightCm.innerText = `${heightCm} cm`;
+                vWeightKg.innerText = `${weightKg} kg`;
+            }
+        }
+
+        // On slider updates sync text dynamically
+        function syncInputs(type) {
+            if (type === 'height') {
+                vHeightCm.innerText = `${rHeight.value} cm`;
+            } else if (type === 'weight') {
+                vWeightKg.innerText = `${rWeight.value} kg`;
+            }
+            syncUnitsAndValues();
+        }
+
+        function updateGenderUI(gender) {
+            appState.gender = gender;
+            const maleLabel = document.getElementById('label-male');
+            const femaleLabel = document.getElementById('label-female');
+
+            if (gender === 'male') {
+                maleLabel.classList.add('bg-white', 'text-blue-700', 'shadow-sm', 'border-blue-100');
+                maleLabel.classList.remove('text-slate-500');
+                femaleLabel.classList.remove('bg-white', 'text-pink-700', 'shadow-sm', 'border-pink-100');
+                femaleLabel.classList.add('text-slate-500');
+            } else {
+                femaleLabel.classList.add('bg-white', 'text-pink-700', 'shadow-sm', 'border-pink-100');
+                femaleLabel.classList.remove('text-slate-500');
+                maleLabel.classList.remove('bg-white', 'text-blue-700', 'shadow-sm', 'border-blue-100');
+                maleLabel.classList.add('text-slate-500');
+            }
+        }
+
+        // Form Submit Execution
+        function calculateBMI(e) {
+            if (e) e.preventDefault();
+            syncUnitsAndValues();
+            calculateAndRender();
+            showToast("Calculated standard BMI values & customized medical roadmap suggestions!");
+        }
+
+        // Pure calculation execution
+        function calculateAndRender() {
+            // Get raw input info
+            let weightKg = 0;
+            let heightM = 0;
+
+            if (appState.unit === 'metric') {
+                weightKg = parseFloat(rWeight.value);
+                heightM = parseFloat(rHeight.value) / 100;
+            } else {
+                const ft = parseInt(inputFt.value) || 0;
+                const inches = parseInt(inputIn.value) || 0;
+                const lbs = parseFloat(inputLbs.value) || 0;
+                const totalInches = (ft * 12) + inches;
+                
+                weightKg = lbs / 2.20462;
+                heightM = (totalInches * 2.54) / 100;
+            }
+
+            if (!weightKg || !heightM) return;
+
+            // Mathematical Formulations
+            const bmi = weightKg / (heightM * heightM);
+            appState.bmi = parseFloat(bmi.toFixed(1));
+            appState.currentHeightCm = heightM * 100;
+            appState.currentWeightKg = weightKg;
+            appState.age = parseInt(inputAge.value) || 28;
+            appState.activityLevel = parseFloat(inputActivity.value) || 1.55;
+
+            // Ideal Weight Formula (WHO Bounds of 18.5 and 24.9 BMI)
+            const minIdealKg = 18.5 * (heightM * heightM);
+            const maxIdealKg = 24.9 * (heightM * heightM);
+
+            const displayMin = appState.unit === 'metric' ? `${Math.round(minIdealKg)} kg` : `${Math.round(minIdealKg * 2.20462)} lbs`;
+            const displayMax = appState.unit === 'metric' ? `${Math.round(maxIdealKg)} kg` : `${Math.round(maxIdealKg * 2.20462)} lbs`;
+            document.getElementById('val-ideal-range').innerText = `${displayMin} - ${displayMax}`;
+
+            // Handle needle graphic update (Gauge ranges from 15 to 35 BMI)
+            const needleRotation = calcNeedleRotation(appState.bmi);
+            document.getElementById('needle').style.transform = `rotate(${needleRotation}deg)`;
+
+            // Retrieve status mapping config
+            const statusConfig = getBMIStatus(appState.bmi);
+            
+            // Render basic UI items
+            const displayBmiVal = document.getElementById('display-bmi-val');
+            const displayBmiLbl = document.getElementById('display-bmi-lbl');
+            
+            displayBmiVal.innerText = appState.bmi;
+            displayBmiLbl.innerText = statusConfig.label;
+            
+            // Dynamic theme matching colors
+            displayBmiLbl.className = `text-xs font-extrabold mt-1.5 px-3 py-1 rounded-full ${statusConfig.badgeClass}`;
+
+            // Calculate TDEE (BMR via Harris-Benedict formulation * activity)
+            let bmr = 0;
+            if (appState.gender === 'male') {
+                bmr = 88.362 + (13.397 * weightKg) + (4.799 * (heightM * 100)) - (5.677 * appState.age);
+            } else {
+                bmr = 447.593 + (9.247 * weightKg) + (3.098 * (heightM * 100)) - (4.330 * appState.age);
+            }
+            const tdee = Math.round(bmr * appState.activityLevel);
+            document.getElementById('val-tdee').innerHTML = `${tdee.toLocaleString()} <span class="text-xs font-bold text-slate-500">kcal/day</span>`;
+
+            // Dynamic Hydration Requirements (Roughly 35ml per kg of weight)
+            const waterLiters = (weightKg * 0.035).toFixed(1);
+            document.getElementById('val-water').innerHTML = `${waterLiters} <span class="text-xs font-bold text-slate-500">Liters</span>`;
+
+            // Launch complete nutrition macros and fitness plans mappings
+            buildPersonalizedCounseling(statusConfig.key, tdee);
+        }
+
+        // Map BMI numerical range to rotation degrees (-90deg to 90deg scale mapped on standard arc)
+        function calcNeedleRotation(bmi) {
+            const minBmi = 15;
+            const maxBmi = 35;
+            let percentage = (bmi - minBmi) / (maxBmi - minBmi);
+            if (percentage < 0) percentage = 0;
+            if (percentage > 1) percentage = 1;
+            // Map percentage range 0-1 to -90 to 90 degrees
+            return -90 + (percentage * 180);
+        }
+
+        // Return core mapping details for health classifications
+        function getBMIStatus(bmi) {
+            if (bmi < 18.5) {
+                return {
+                    key: 'underweight',
+                    label: 'Underweight',
+                    badgeClass: 'bg-blue-50 text-blue-600 border border-blue-100'
+                };
+            } else if (bmi >= 18.5 && bmi <= 24.9) {
+                return {
+                    key: 'normal',
+                    label: 'Normal Weight',
+                    badgeClass: 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                };
+            } else if (bmi >= 25 && bmi <= 29.9) {
+                return {
+                    key: 'overweight',
+                    label: 'Overweight',
+                    badgeClass: 'bg-amber-50 text-amber-600 border border-amber-100'
+                };
+            } else {
+                return {
+                    key: 'obese',
+                    label: 'Obese Status',
+                    badgeClass: 'bg-rose-50 text-rose-600 border border-rose-100'
+                };
+            }
+        }
+
+        // Custom macro splits & recommended health plans mapping data base
+        function buildPersonalizedCounseling(categoryKey, tdee) {
+            // Target elements pointers
+            const carbPctSpan = document.getElementById('macro-carb-pct');
+            const carbGramsSpan = document.getElementById('macro-carb-grams');
+            const protPctSpan = document.getElementById('macro-protein-pct');
+            const protGramsSpan = document.getElementById('macro-protein-grams');
+            const fatPctSpan = document.getElementById('macro-fat-pct');
+            const fatGramsSpan = document.getElementById('macro-fat-grams');
+
+            const incFoodList = document.getElementById('diet-foods-to-include');
+            const avoidFoodList = document.getElementById('diet-foods-to-avoid');
+
+            const fitHeadline = document.getElementById('fitness-headline');
+            const fitRoutine = document.getElementById('fitness-routine');
+            const fitGuidelines = document.getElementById('fitness-guidelines');
+
+            const sleepSpan = document.getElementById('lifestyle-sleep');
+            const stressSpan = document.getElementById('lifestyle-stress');
+            const stepsSpan = document.getElementById('lifestyle-steps');
+            const habitsList = document.getElementById('lifestyle-habits-list');
+
+            // Standard macro calorie values helper constants
+            const CarbCalVal = 4;
+            const ProtCalVal = 4;
+            const FatCalVal = 9;
+
+            let calorieAdjustment = tdee; // Dynamic diet target modification
+            let split = { carb: 50, protein: 25, fat: 25 };
+            let foodsToInclude = [];
+            let foodsToAvoid = [];
+            let routinePlan = [];
+            let progressionTips = [];
+            let physicalDescription = "";
+            let physicalSteps = "10k+ steps";
+            let habits = [];
+
+            switch(categoryKey) {
+                case 'underweight':
+                    calorieAdjustment = Math.round(tdee + 400); // Nutrient Surplus targeting healthy cellular synthesis
+                    split = { carb: 50, protein: 25, fat: 25 };
+                    foodsToInclude = [
+                        "Energy & Nutrient dense whole grains (Oats, quinoa, brown rice)",
+                        "Lean proteins & full fat dairy items (Eggs, salmon, whole milk, Greek yogurt)",
+                        "Healthy fats (Avocadoes, raw almonds, chia seeds, extra-virgin olive oil)",
+                        "Smoothies enriched with plant-based protein powders and nut butter varieties"
+                    ];
+                    foodsToAvoid = [
+                        "Excessive empty-calorie carbonated soft drinks & processed sweet pastries",
+                        "Excessive caffeine consumption that acts to suppress base metabolic appetite markers",
+                        "Deep-fried fast food items high in toxic oxidized trans fats",
+                        "Highly processed packaged diets devoid of real structural nutritional values"
+                    ];
+                    physicalDescription = "Focus primarily on progressive muscle-building strength stimulation while keeping steady metabolic calorie burning (cardio) at a strategic minimum.";
+                    routinePlan = [
+                        { title: "Resistance / Weight Training", text: "3 to 4 days per week focusing on fundamental multi-joint compound lift exercises." },
+                        { title: "Cardiovascular Activity", text: "Low impact 1-2 times a week max (e.g. 15-minute relaxed active recovery walking)." },
+                        { title: "Dynamic Recovery Periods", text: "Mandatory 48-hour resting margins between high intensity core muscular lifting splits." }
+                    ];
+                    progressionTips = [
+                        { title: "Progressive Overload Principle", text: "Log lift progress; increase weight load, sets, or repetitions incrementally weekly." },
+                        { title: "Structured Nutrition Windows", text: "Consume clean high-carb / high-protein nutritional supplements within 1 hour post weight training." }
+                    ];
+                    physicalSteps = "6,000 - 8,000 steps";
+                    habits = [
+                        "Eat every 3-4 hours focusing on dense portion sizes.",
+                        "Track meals to ensure you are consistently hit your daily calorie target.",
+                        "Optimize sleep quality to support natural human growth hormone production.",
+                        "Drink liquids mostly between meals rather than during them to avoid early fullness."
+                    ];
+                    break;
+
+                case 'normal':
+                    calorieAdjustment = tdee; // Maintenance
+                    split = { carb: 45, protein: 30, fat: 25 };
+                    foodsToInclude = [
+                        "Diverse rainbow of rich colorful vegetables and seasonal fresh fruits",
+                        "High biological value lean proteins (Organic chicken breast, egg whites, turkey, plant beans)",
+                        "Complex long-chain carb sources (Sweet potatoes, sprouted grain whole breads)",
+                        "Heart-healthy fats (Walnuts, flaxseeds, organic avocados)"
+                    ];
+                    foodsToAvoid = [
+                        "High sodium commercial ready-to-eat microwave dinners",
+                        "Refined sugars, high-fructose corn syrups, and industrial candy varieties",
+                        "Highly processed low-protein snacking chips and empty snack biscuits",
+                        "Excessive consumption of high alcohol volume drinks"
+                    ];
+                    physicalDescription = "Combine robust cardiovascular endurance training with comprehensive resistance splits for high physical capability, metabolic flexibility, and core strength.";
+                    routinePlan = [
+                        { title: "Balanced Muscle Training", text: "3 days per week focusing on comprehensive upper/lower physical split models." },
+                        { title: "Vibrant Aerobic Training", text: "150 minutes of weekly moderate aerobic activities (e.g. swimming, brisk trail jogging)." },
+                        { title: "Mobility & Flow Splits", text: "1-2 short functional yoga or stretching sequences to preserve high joint mechanics." }
+                    ];
+                    progressionTips = [
+                        { title: "Diversified Movement Schemes", text: "Periodize training variables across months (e.g., strength phase, hypertrophy, endurance phase)." },
+                        { title: "Physical Wellness Consistency", text: "Aim for consistent weekly activity metrics; prevent physical plateaus by trying new sports." }
+                    ];
+                    physicalSteps = "10,000+ steps";
+                    habits = [
+                        "Prep meals ahead to lock in healthy ingredients throughout the week.",
+                        "Maintain steady water intake: carry a reusable bottle.",
+                        "Include short active breaks during work hours to offset sitting.",
+                        "Set regular sleep cycles, sleeping and waking at the same times."
+                    ];
+                    break;
+
+                case 'overweight':
+                    calorieAdjustment = Math.round(tdee - 450); // Safe weight reduction deficit
+                    split = { carb: 40, protein: 35, fat: 25 };
+                    foodsToInclude = [
+                        "Abundant fibrous leafy vegetables to boost stomach fullness (Spinach, broccoli, cabbage)",
+                        "High protein sources to maintain muscle mass (Tofu, white fish, cod, lean beef cuts)",
+                        "High-volume, low-calorie fresh fruits (Blueberries, strawberries, raspberries)",
+                        "Legumes and pulse variants for rich fiber digestion support"
+                    ];
+                    foodsToAvoid = [
+                        "Sneaky sugary liquid drink calories, sodas, fruit juices, sweet sports fuel formulas",
+                        "Processed salad dressings laden with hidden heavy oils and sugars",
+                        "Refined carbohydrates such as white bakery flour bread and instant white noodles",
+                        "Ultra-processed evening snack foods like deep-fried items"
+                    ];
+                    physicalDescription = "A dual-focus plan combining persistent heavy resistance stimulus (to preserve calorie-burning muscle) with consistent aerobic fat oxidation patterns.";
+                    routinePlan = [
+                        { title: "Lean Muscle Preservation", text: "3 to 4 resistance workouts weekly, pushing for medium-weight set loads." },
+                        { title: "High Activity Cardio", text: "30-45 minutes of moderate cardio (e.g., stationary cycling or incline walking) 4 times weekly." },
+                        { title: "NEAT (Non-Exercise Activity)", text: "Consistently boost movement outside of direct gym sessions (e.g., stairs)." }
+                    ];
+                    progressionTips = [
+                        { title: "Aerobic Capacity Tracking", text: "Increase cardiovascular duration or target pace as resting heart rate adapts lower." },
+                        { title: "Strategic Low-Impact Progression", text: "Select low-impact cardiorespiratory devices to protect knee cartilage from excessive weight stress." }
+                    ];
+                    physicalSteps = "10,000 - 12,000 steps";
+                    habits = [
+                        "Eat a high-protein breakfast to limit snacking urges later in the day.",
+                        "Use smaller plates to naturally assist with structural portion controls.",
+                        "Drink a large glass of pure water 20 minutes prior to main meals.",
+                        "Pause halfway through eating to let natural fullness signals register."
+                    ];
+                    break;
+
+                case 'obese':
+                    calorieAdjustment = Math.round(tdee - 600); // Sustainable, controlled deficit
+                    split = { carb: 35, protein: 40, fat: 25 };
+                    foodsToInclude = [
+                        "Unrefined fiber sources to support steady blood glucose control",
+                        "Lean lean proteins to optimize muscle retention (Chicken, cod, turkey, egg whites)",
+                        "Non-starchy cruciferous vegetable mixes (Cauliflower, zucchini, asparagus)",
+                        "Controlled fats in small whole portions (Raw nuts, raw seed variants)"
+                    ];
+                    foodsToAvoid = [
+                        "Refined simple carbohydrates, white breads, sweet confectionery pastries, energy bars",
+                        "Highly processed fast food items, fried meats, high trans-fat meals",
+                        "Commercial ready-made sauces containing high sugar and processed oils",
+                        "High-calorie coffee beverages loaded with heavy milks and sugar syrups"
+                    ];
+                    physicalDescription = "Prioritize joint safety and structural integrity. Start with gentle, low-impact movements to establish core cardiovascular habits before lifting heavy weights.";
+                    routinePlan = [
+                        { title: "Low-Impact Joint Cardio", text: "20-30 minutes of swimming, pool water aerobics, or recumbent cycle riding 4 times weekly." },
+                        { title: "Basic Structural Strength", text: "2 days weekly of low-impact resistance bands or supported seated machine weights." },
+                        { title: "Pacing & Vitality Management", text: "Divide movements into manageable parts (e.g. three short 10-minute walks per day)." }
+                    ];
+                    progressionTips = [
+                        { title: "Focus on Consistency Over Intensity", text: "Build the habit of daily movement before trying to speed up." },
+                        { title: "Listen to Joint Signals", text: "Consult health professionals if you feel any joint strain or chest pain." }
+                    ];
+                    physicalSteps = "8,000 - 10,000 steps";
+                    habits = [
+                        "Keep an accurate daily journal of food intake and energy levels.",
+                        "Clear out high-sugar convenience foods from your kitchen shelves.",
+                        "Focus on dynamic non-food rewards to celebrate lifestyle wins.",
+                        "Get regular rest to help prevent stress-induced cravings."
+                    ];
+                    break;
+            }
+
+            // Calculate exact grams
+            const carbGrams = Math.round((calorieAdjustment * (split.carb / 100)) / CarbCalVal);
+            const proteinGrams = Math.round((calorieAdjustment * (split.protein / 100)) / ProtCalVal);
+            const fatGrams = Math.round((calorieAdjustment * (split.fat / 100)) / FatCalVal);
+
+            // Populate Macro UI elements
+            carbPctSpan.innerText = `${split.carb}%`;
+            carbGramsSpan.innerText = `${carbGrams}g`;
+            protPctSpan.innerText = `${split.protein}%`;
+            protGramsSpan.innerText = `${proteinGrams}g`;
+            fatPctSpan.innerText = `${split.fat}%`;
+            fatGramsSpan.innerText = `${fatGrams}g`;
+
+            // Populate Food Recommendations
+            incFoodList.innerHTML = foodsToInclude.map(f => `<li class="flex items-start gap-2"><span class="text-emerald-500 font-bold mt-0.5">•</span> <span>${f}</span></li>`).join('');
+            avoidFoodList.innerHTML = foodsToAvoid.map(f => `<li class="flex items-start gap-2"><span class="text-rose-400 font-bold mt-0.5">•</span> <span>${f}</span></li>`).join('');
+
+            // Populate Fitness
+            fitHeadline.innerText = physicalDescription;
+            fitRoutine.innerHTML = routinePlan.map(p => `
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <h6 class="text-xs font-bold text-slate-800">${p.title}</h6>
+                    <p class="text-xs text-slate-500 font-medium mt-0.5">${p.text}</p>
+                </div>
+            `).join('');
+            
+            fitGuidelines.innerHTML = progressionTips.map(g => `
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <h6 class="text-xs font-bold text-slate-800">${g.title}</h6>
+                    <p class="text-xs text-slate-500 font-medium mt-0.5">${g.text}</p>
+                </div>
+            `).join('');
+
+            // Populate Lifestyle details
+            sleepSpan.innerText = "7 - 8.5 Hours";
+            stressSpan.innerText = categoryKey === 'obese' || categoryKey === 'overweight' ? "High Priority (Deep Breathing)" : "Regular Check-ins";
+            stepsSpan.innerText = physicalSteps;
+            habitsList.innerHTML = habits.map(h => `
+                <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-start gap-2">
+                    <span class="p-1 bg-emerald-100 text-emerald-600 rounded-lg mt-0.5"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+                    <span class="text-xs text-slate-600 font-medium">${h}</span>
+                </div>
+            `).join('');
+
+            // Reparse Lucide graphics to render dynamic newly injected elements
+            lucide.createIcons();
+        }
+
+        // Tabs management behavior
+        function switchCounselingTab(tabId) {
+            const tabs = ['diet', 'fitness', 'lifestyle'];
+            tabs.forEach(t => {
+                const tabEl = document.getElementById(`tab-${t}`);
+                const btnEl = document.getElementById(`tab-${t}-btn`);
+                
+                if (t === tabId) {
+                    tabEl.classList.remove('hidden');
+                    btnEl.classList.add('bg-white', 'text-slate-800', 'shadow-sm');
+                    btnEl.classList.remove('text-slate-500');
+                } else {
+                    tabEl.classList.add('hidden');
+                    btnEl.classList.remove('bg-white', 'text-slate-800', 'shadow-sm');
+                    btnEl.classList.add('text-slate-500');
+                }
+            });
+        }
+
+        // Localstorage mechanics
+        function saveResult() {
+            const timestamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            
+            const record = {
+                id: Date.now(),
+                timestamp: timestamp,
+                weight: appState.unit === 'metric' ? parseFloat(rWeight.value) : parseFloat(inputLbs.value),
+                bmi: appState.bmi,
+                unit: appState.unit
+            };
+
+            appState.history.unshift(record);
+            if (appState.history.length > 8) appState.history.pop(); // Keep top 8 logs
+            
+            saveToLocalStorage();
+            renderHistoryLogs();
+            updateHistoryChart();
+            showToast("Logged current metrics dynamically to progress timeline!");
+        }
+
+        function clearHistory() {
+            appState.history = [];
+            saveToLocalStorage();
+            renderHistoryLogs();
+            updateHistoryChart();
+            showToast("Cleared weight historical logging repository!");
+        }
+
+        function deleteLog(id) {
+            appState.history = appState.history.filter(log => log.id !== id);
+            saveToLocalStorage();
+            renderHistoryLogs();
+            updateHistoryChart();
+            showToast("Successfully removed weight record.");
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('wellness_path_history', JSON.stringify(appState.history));
+        }
+
+        function loadFromLocalStorage() {
+            const stored = localStorage.getItem('wellness_path_history');
+            if (stored) {
+                try {
+                    appState.history = JSON.parse(stored);
+                } catch(e) {
+                    appState.history = [];
+                }
+            } else {
+                // Seed values if empty
+                appState.history = [
+                    { id: 1, timestamp: "May 1", weight: 75, bmi: 24.5, unit: "metric" },
+                    { id: 2, timestamp: "May 15", weight: 72, bmi: 23.5, unit: "metric" },
+                    { id: 3, timestamp: "May 30", weight: 70, bmi: 22.8, unit: "metric" }
+                ];
+            }
+            renderHistoryLogs();
+            updateHistoryChart();
+        }
+
+        function renderHistoryLogs() {
+            const container = document.getElementById('logs-container');
+            if (!container) return;
+
+            if (appState.history.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 space-y-1">
+                        <i data-lucide="folder-open" class="w-8 h-8 mx-auto text-slate-300"></i>
+                        <p class="text-xs font-semibold">No logs saved yet.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = appState.history.map(log => {
+                const displayUnit = log.unit === 'metric' ? 'kg' : 'lbs';
+                return `
+                    <div class="bg-slate-50 border border-slate-100 p-3 rounded-xl flex items-center justify-between group">
+                        <div>
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="text-sm font-bold text-slate-800">${log.weight}</span>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase">${displayUnit}</span>
+                                <span class="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded ml-2">${log.bmi} BMI</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-semibold block mt-0.5">${log.timestamp}</span>
+                        </div>
+                        <button onclick="deleteLog(${log.id})" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition p-1 hover:bg-rose-50 rounded-lg">
+                            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+
+        function updateHistoryChart() {
+            const ctx = document.getElementById('weightHistoryChart');
+            const placeholder = document.getElementById('chart-placeholder');
+            
+            if (!ctx) return;
+
+            if (appState.history.length < 2) {
+                ctx.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                if (weightChart) {
+                    weightChart.destroy();
+                    weightChart = null;
+                }
+                return;
+            }
+
+            ctx.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+
+            // Map data items in chronological order (reverse of the input stack order)
+            const chronologicalData = [...appState.history].reverse();
+            const labels = chronologicalData.map(log => log.timestamp.split(',')[0]);
+            const weightDataset = chronologicalData.map(log => log.weight);
+            const bmiDataset = chronologicalData.map(log => log.bmi);
+
+            if (weightChart) {
+                weightChart.data.labels = labels;
+                weightChart.data.datasets[0].data = weightDataset;
+                weightChart.data.datasets[1].data = bmiDataset;
+                weightChart.update();
+            } else {
+                weightChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Weight Progress',
+                                data: weightDataset,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.3,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'BMI Progress',
+                                data: bmiDataset,
+                                borderColor: '#10b981',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                borderDash: [4, 4],
+                                fill: false,
+                                tension: 0.3,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: {
+                                    font: { family: 'Inter', size: 10, weight: 'bold' },
+                                    boxWidth: 12
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Inter', size: 10 } }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                grid: { color: '#f1f5f9' },
+                                ticks: { font: { family: 'Inter', size: 10 } }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                grid: { drawOnChartArea: false },
+                                ticks: { font: { family: 'Inter', size: 10 } }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Copy summary to clipboard
+        function copyShareableText() {
+            const statusConfig = getBMIStatus(appState.bmi);
+            const calText = document.getElementById('val-tdee').innerText;
+            const waterText = document.getElementById('val-water').innerText;
+            const idealRange = document.getElementById('val-ideal-range').innerText;
+
+            const textToCopy = `
+--- WellnessPath Health Report Summary ---
+Generated on: ${new Date().toLocaleDateString()}
+Current BMI: ${appState.bmi} (${statusConfig.label})
+Estimated TDEE: ${calText}
+Ideal Weight Range: ${idealRange}
+Est Daily Hydration: ${waterText}
+
+--- Core Improvement Recommendations ---
+Nutrition Strategy: High balanced proteins and fiber, minimal industrial simple carbs.
+Workout Strategy: Consistent cardiorespiratory activity mixed with regular core resistance lifting.
+
+Consult standard clinical professionals for deep medically custom therapies.
+-----------------------------------------
+`;
+            
+            // Clipboard Copy Mechanics
+            const tempInput = document.createElement("textarea");
+            tempInput.value = textToCopy.trim();
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            showToast("Copied diagnostic report summary safely to clipboard!");
+        }
+
+        // Global Alert Helper Systems
+        let toastTimeout = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastMessage.innerText = message;
+            toast.classList.remove('hidden');
+            
+            // Trigger visual transitions
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+                toast.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                hideToast();
+            }, 4000);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+            toast.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 300);
+        }
+
+        function resetApp() {
+            localStorage.clear();
+            appState.history = [];
+            rHeight.value = 175;
+            rWeight.value = 70;
+            inputAge.value = 28;
+            inputActivity.value = "1.55";
+            updateGenderUI('male');
+            switchUnit('metric');
+            calculateAndRender();
+            renderHistoryLogs();
+            updateHistoryChart();
+            showToast("Reset all applications, variables, and history parameters successfully.");
+        }
+    </script>
+</body>
+</html>
